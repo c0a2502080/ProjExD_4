@@ -142,6 +142,7 @@ class Bomb(pg.sprite.Sprite):
         self.rect.centerx = emy.rect.centerx
         self.rect.centery = emy.rect.centery + emy.rect.height // 2
         self.speed = 6
+        self.state = "active"
 
     def update(self):
         """
@@ -278,6 +279,30 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class EMP:
+    """
+    電磁パルス（EMP）に関するクラス
+    """
+    def __init__(self, emys: pg.sprite.Group, bombs: pg.sprite.Group, screen: pg.Surface):
+        emp_surf = pg.Surface((WIDTH, HEIGHT))#画面を黄色に
+        emp_surf.set_alpha(128) #半透明に
+        emp_surf.fill((255, 255, 0))
+        screen.blit(emp_surf, (0, 0))
+        pg.display.update()
+        time.sleep(0.05)
+
+        # 敵機の無効化
+        for emy in emys:
+            emy.interval = float("inf")  # 爆弾投下できない
+            try:
+                emy.image = pg.transform.laplacian(emy.image)
+            except:
+                pass  
+
+        for bomb in bombs:#爆弾無効か
+            bomb.speed *= 0.5
+            bomb.state = "inactive"  
+
 class Gravity(pg.sprite.Sprite):
     """
     重力場に関するクラス
@@ -321,6 +346,11 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+
+            if event.type == pg.KEYDOWN and event.key == pg.K_e:
+                       if score.value >= 20:
+                          score.value -= 20
+                          EMP(emys, bombs, screen)
             if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value >= 200:
                 score.value -= 200
                 gravities.add(Gravity(400))
@@ -343,6 +373,7 @@ def main():
 
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
+
 
         # ★追加④ 重力場で敵を破壊
         for emy in pg.sprite.groupcollide(emys, gravities, True, False).keys():
